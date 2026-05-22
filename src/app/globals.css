@@ -11,3 +11,13 @@ body {
 button {
   touch-action: manipulation;
 }
+
+@keyframes drawer-backdrop-in {
+  from { background: rgba(0, 0, 0, 0); }
+  to   { background: rgba(0, 0, 0, 0.7); }
+}
+
+@keyframes drawer-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}

@@ -228,15 +228,15 @@ export default function Routine() {
       </div>
 
       {/* Day tabs */}
-      <div style={{ display: "flex", overflowX: "auto", padding: "12px 20px 0", gap: 8, scrollbarWidth: "none" }}>
+      <div style={{ display: "flex", padding: "12px 20px 0", gap: 6 }}>
         {days.map((d, i) => (
           <button key={i} onClick={() => setActive(i)} style={{
             background: active === i ? d.color : "#1e1e1e",
             color: active === i ? d.textColor : "#888",
-            border: "none", borderRadius: 6, padding: "8px 14px",
-            fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
+            border: "none", borderRadius: 6, padding: "8px 0",
+            fontSize: 11, fontWeight: 700, letterSpacing: 1,
             cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
-            transition: "all 0.15s ease", flexShrink: 0,
+            transition: "all 0.15s ease", flex: 1, minWidth: 0,
           }}>
             {d.label}
           </button>
@@ -274,16 +274,6 @@ export default function Routine() {
         </div>
       </div>
 
-      {/* Wrist reminder */}
-      <div style={{
-        margin: "0 20px calc(24px + env(safe-area-inset-bottom))",
-        background: "#1a1a1a", borderRadius: 10, padding: "12px 16px",
-        fontSize: 12, color: "#666",
-      }}>
-        <span style={{ color: "#ff9f6b", fontWeight: 700 }}>⚠ Wrist note: </span>
-        Swap push-ups for fist push-ups if anything flares.
-      </div>
-
       {/* Exercise detail drawer */}
       {selected && (
         <div
@@ -291,6 +281,7 @@ export default function Routine() {
           style={{
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
             display: "flex", alignItems: "flex-end", zIndex: 100,
+            animation: "drawer-backdrop-in 220ms ease-out",
           }}
         >
           <div
@@ -301,6 +292,7 @@ export default function Routine() {
               width: "100%", maxHeight: "80dvh",
               overflowY: "auto", overscrollBehavior: "contain",
               boxSizing: "border-box",
+              animation: "drawer-slide-up 260ms cubic-bezier(0.32, 0.72, 0, 1)",
             }}
           >
             {/* Handle */}
