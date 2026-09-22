@@ -7,8 +7,10 @@ It started as a Claude artifact in the iPhone app and grew into a deployable Nex
 ## Features
 
 - **Seven-day plan** — Mon/Thu Push, Tue/Fri Pull, Wed Core + Mobility, Sat easy/optional, Sun rest. Each day has its own accent color that threads through the UI.
-- **Exercise detail drawer** — tap any exercise for muscles worked, step-by-step form, and tips. Slides up from the bottom on iPhone.
-- **iPhone-friendly** — full-screen on mobile, safe-area aware (notch + home indicator), no tap-zoom delay, no rubber-band leakage. "Add to Home Screen" gets you a near-native experience with a custom icon.
+- **Exercise detail drawer** — tap any exercise for muscles worked, step-by-step form, and tips. Slides up from the bottom on iPhone, and slides back down on close.
+- **Progress for the week** — tick exercises off as you go (from the list or the drawer). Stored in `localStorage`, resets every Monday. Day tabs show a dot once a day is fully done.
+- **Opens on today** — the current day's tab is selected automatically.
+- **iPhone-friendly** — full-screen on mobile, safe-area aware (notch + home indicator), no tap-zoom delay, no rubber-band leakage, instant press feedback. "Add to Home Screen" gets you a near-native experience with a custom icon (web manifest included).
 - **Static page** — pre-renders at build time, deploys cheap.
 
 ## Tech Stack
@@ -23,6 +25,12 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+```bash
+npm test        # vitest (week/day helpers)
+npm run lint
+npm run typecheck
+```
 
 ## Building
 
@@ -40,8 +48,12 @@ Deployed on [Railway](https://railway.app). The app runs as a standard Next.js s
 src/
   app/
     layout.tsx          # Root layout, font, viewport + Apple PWA meta
-    page.tsx            # The whole app: data + Routine component
-    globals.css         # Tailwind import + iOS-friendly resets
+    page.tsx            # Routine component (tabs, list, drawer, done toggles)
+    manifest.ts         # Web app manifest
+    globals.css         # Tailwind import, iOS resets, press states, drawer keyframes
+  data/plan.ts          # Weekly plan + exercise details (edit here)
+  hooks/useProgress.ts  # Weekly done-state in localStorage
+  lib/week.ts           # dayIndex / weekKey helpers (+ tests)
 public/
   icon.svg              # Source icon (three accent bars on dark)
   apple-touch-icon.png  # 180×180 for iOS Add-to-Home-Screen
@@ -49,12 +61,11 @@ public/
 railway.json            # Build + start commands for Railway
 ```
 
-The plan data (`days`) and exercise details (`exerciseInfo`) live in [src/app/page.tsx](src/app/page.tsx) — easy to tweak by hand.
+The plan data (`days`) and exercise details (`exerciseInfo`) live in [src/data/plan.ts](src/data/plan.ts) — easy to tweak by hand.
 
 ## Upcoming ideas
 
-- **Progress tracking** — checkboxes per exercise, streaks across the week, all in `localStorage`.
-- **"Today's workout" default** — open the app and the current day's tab is selected automatically.
+- **Streaks** — carry a week-over-week completion history instead of resetting on Monday.
 - **Per-day deep links** — `/push`, `/pull`, `/core` for routing from a home-screen shortcut.
 - **Timer for holds** — a tappable 30/45-second timer on plank, hollow body, etc.
 - **Swap suggestions** — alternate movements when wrists are flaring or a pull-up bar isn't around.

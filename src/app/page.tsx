@@ -1,210 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { days, exerciseInfo, type Exercise } from "@/data/plan";
+import { useProgress } from "@/hooks/useProgress";
+import { dayIndex } from "@/lib/week";
 
-type ExerciseInfo = {
-  muscles: string;
-  how: string;
-  tips: string[];
-};
-
-type Exercise = {
-  name: string;
-  detail: string;
-  note: string;
-};
-
-type Day = {
-  label: string;
-  title: string;
-  color: string;
-  textColor: string;
-  exercises: Exercise[];
-};
-
-const exerciseInfo: Record<string, ExerciseInfo> = {
-  "Push-ups": {
-    muscles: "Chest, triceps, front deltoids, core",
-    how: "Hands shoulder-width apart, body in a straight line from head to heels. Lower your chest to just above the floor, keeping elbows at roughly 45° from your torso. Press back up without locking out elbows at the top.",
-    tips: [
-      "Don't let your hips sag or pike up",
-      "Squeeze your glutes and abs throughout",
-      "Stop 2–3 reps before form breaks down",
-      "Fist push-ups reduce wrist extension if needed",
-    ],
-  },
-  "Chair Dips": {
-    muscles: "Triceps, lower chest, front deltoids",
-    how: "Hands on the edge of a sturdy chair or surface behind you, fingers forward. Feet flat on the floor, knees bent. Lower yourself by bending the elbows to ~90°, then press back up.",
-    tips: [
-      "Keep your back close to the chair",
-      "Don't shrug your shoulders at the top",
-      "Wider feet = easier; straighter legs = harder",
-    ],
-  },
-  "Pike Push-ups": {
-    muscles: "Shoulders (deltoids), triceps, upper chest",
-    how: "Start in a downward-dog position — hips high, body forming an inverted V. Bend your elbows to lower the top of your head toward the floor, then press back up. The movement mimics an overhead press.",
-    tips: [
-      "The higher your hips, the more shoulder-dominant it becomes",
-      "Keep your neck neutral — don't crane up",
-      "This is a progression toward handstand push-ups",
-    ],
-  },
-  "Bulgarian Split Squats": {
-    muscles: "Quads, glutes, hamstrings, balance",
-    how: "Rear foot elevated on a chair or couch behind you, front foot stepped out. Lower your back knee toward the floor, keeping your front shin mostly vertical. Drive up through the front heel.",
-    tips: [
-      "Front foot distance matters — experiment until shin stays vertical",
-      "Hold something for balance until comfortable",
-      "Go slow on the way down (3 seconds) for more benefit",
-    ],
-  },
-  "Pull-ups": {
-    muscles: "Lats, biceps, rear deltoids, rhomboids",
-    how: "Hang from the bar with hands slightly wider than shoulder-width, palms facing away. Pull until your chin clears the bar, initiating the movement by drawing your shoulder blades down and together. Lower with control.",
-    tips: [
-      "Don't kip or swing — slow and controlled builds real strength",
-      "Think 'elbows to hips' rather than 'chin to bar'",
-      "Dead hang fully at the bottom for full range of motion",
-    ],
-  },
-  "Negative Pull-ups": {
-    muscles: "Lats, biceps, rear deltoids (eccentric focus)",
-    how: "Jump or step up so your chin is above the bar, then lower yourself as slowly as possible — aim for 5 full seconds down. Step off and repeat. You're training the lowering phase, which builds strength fast.",
-    tips: [
-      "5 seconds down is the goal; 3 is fine to start",
-      "Don't just drop — fight gravity the whole way",
-      "Do these after your main pull-up sets when fresh strength is spent",
-    ],
-  },
-  "Australian Rows": {
-    muscles: "Upper back, biceps, rear deltoids, core",
-    how: "Find a sturdy table. Lie underneath it, grip the edge with hands shoulder-width apart, and hang with straight arms. Your body should be in a straight line. Pull your chest up to the table, then lower back down.",
-    tips: [
-      "The more horizontal your body, the harder it is",
-      "Keep your core tight — no sagging hips",
-      "This is your horizontal pull to balance out push-ups",
-    ],
-  },
-  "Hollow Body Hold": {
-    muscles: "Deep core (transverse abdominis), hip flexors, shoulder stabilizers",
-    how: "Lie on your back. Press your lower back firmly into the floor. Raise your legs to about 45° and your arms overhead and slightly off the floor. Hold the position — your body forms a shallow 'dish' or 'banana' shape.",
-    tips: [
-      "Lower back MUST stay in contact with the floor",
-      "Bend your knees to make it easier; straighten to make it harder",
-      "This is the foundation of almost all gymnastics strength work",
-    ],
-  },
-  "Dead Bug": {
-    muscles: "Deep core, anti-rotation stability",
-    how: "Lie on your back, arms pointed straight up, knees bent at 90° lifted in the air. Slowly lower your right arm overhead and extend your left leg simultaneously — keeping your lower back flat on the floor. Return and switch sides.",
-    tips: [
-      "The lower back staying flat is the whole exercise",
-      "Move slowly — control beats speed here",
-      "Exhale as you extend; this helps brace your core",
-    ],
-  },
-  "Plank": {
-    muscles: "Full core, shoulders, glutes",
-    how: "Forearms on the floor, elbows under shoulders. Body in a straight line from head to heels. Hold.",
-    tips: [
-      "Squeeze everything: abs, glutes, quads",
-      "Don't let hips rise or sag",
-      "Push your elbows into the floor slightly for more shoulder engagement",
-    ],
-  },
-  "Stretching": {
-    muscles: "Hip flexors, thoracic spine (upper back)",
-    how: "Hip flexor: kneel on one knee, shift forward until you feel a stretch in the front of the rear hip. Hold 30–45 sec each side. Thoracic: sit cross-legged, place hands behind head, and gently extend your upper back over a rolled towel or foam roller.",
-    tips: [
-      "Breathe into the stretch — don't hold your breath",
-      "This day is about recovery, not intensity",
-      "Consistency here pays off in posture and injury prevention",
-    ],
-  },
-  "Stairmaster or walk": {
-    muscles: "Legs, cardiovascular system",
-    how: "Easy effort only. If using the stairmaster, stay at a conversational pace. You should be able to hold a full sentence without gasping.",
-    tips: [
-      "This is active recovery, not a workout",
-      "Skip it entirely if you're tired — rest is valid",
-    ],
-  },
-  "Full rest": {
-    muscles: "Everything",
-    how: "Do nothing. Seriously. This is when your muscles actually grow and repair. Sleep, eat well, and let the week's work sink in.",
-    tips: [
-      "Sleep is the most underrated training tool",
-      "Light walking is fine if you feel restless",
-    ],
-  },
-};
-
-const days: Day[] = [
-  {
-    label: "MON", title: "Push", color: "#e8ff6b", textColor: "#111",
-    exercises: [
-      { name: "Push-ups", detail: "4 × 10–12 reps", note: "Stop 2–3 short of failure" },
-      { name: "Chair Dips", detail: "3 × 8–10 reps", note: "Furniture works fine" },
-      { name: "Pike Push-ups", detail: "3 × 8 reps", note: "Shoulder emphasis" },
-      { name: "Bulgarian Split Squats", detail: "2 × 10 each side", note: "Leg maintenance" },
-    ],
-  },
-  {
-    label: "TUE", title: "Pull", color: "#6bffd8", textColor: "#111",
-    exercises: [
-      { name: "Pull-ups", detail: "4 sets × max reps", note: "Good form only" },
-      { name: "Negative Pull-ups", detail: "3 × 5-sec descent", note: "After working sets" },
-      { name: "Australian Rows", detail: "3 × 12 reps", note: "Table / furniture rows" },
-    ],
-  },
-  {
-    label: "WED", title: "Core + Mobility", color: "#ff9f6b", textColor: "#111",
-    exercises: [
-      { name: "Hollow Body Hold", detail: "3 × 20–30 sec", note: "" },
-      { name: "Dead Bug", detail: "3 × 10 each side", note: "" },
-      { name: "Plank", detail: "3 × 45 sec", note: "" },
-      { name: "Stretching", detail: "Hip flexors + thoracic spine", note: "Take your time" },
-    ],
-  },
-  {
-    label: "THU", title: "Push", color: "#e8ff6b", textColor: "#111",
-    exercises: [
-      { name: "Push-ups", detail: "4 × 10–12 reps", note: "Stop 2–3 short of failure" },
-      { name: "Chair Dips", detail: "3 × 8–10 reps", note: "Furniture works fine" },
-      { name: "Pike Push-ups", detail: "3 × 8 reps", note: "Shoulder emphasis" },
-      { name: "Bulgarian Split Squats", detail: "2 × 10 each side", note: "Leg maintenance" },
-    ],
-  },
-  {
-    label: "FRI", title: "Pull", color: "#6bffd8", textColor: "#111",
-    exercises: [
-      { name: "Pull-ups", detail: "4 sets × max reps", note: "Good form only" },
-      { name: "Negative Pull-ups", detail: "3 × 5-sec descent", note: "After working sets" },
-      { name: "Australian Rows", detail: "3 × 12 reps", note: "Table / furniture rows" },
-    ],
-  },
-  {
-    label: "SAT", title: "Rest / Easy", color: "#c4c4c4", textColor: "#111",
-    exercises: [
-      { name: "Stairmaster or walk", detail: "Optional", note: "Keep it easy" },
-      { name: "Stretching", detail: "Optional", note: "Recovery focus" },
-    ],
-  },
-  {
-    label: "SUN", title: "Rest", color: "#c4c4c4", textColor: "#111",
-    exercises: [
-      { name: "Full rest", detail: "You've earned it", note: "" },
-    ],
-  },
-];
+// Must match the `sheet-out` duration in globals.css: the drawer stays mounted
+// this long after close is requested so the exit animation can play.
+const CLOSE_MS = 200;
 
 export default function Routine() {
   const [active, setActive] = useState(0);
   const [selected, setSelected] = useState<Exercise | null>(null);
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+  const { doneCount, isDone, toggle } = useProgress();
   const day = days[active];
   const info = selected ? exerciseInfo[selected.name] : null;
+  const selectedDone = selected ? isDone(active, selected.name) : false;
+
+  // The page is static, so the server always renders Monday. Jump to today's
+  // tab on the client, and again when the app returns to the foreground on a
+  // different day (a home-screen PWA can stay open overnight).
+  useEffect(() => {
+    let lastDay = -1;
+    function sync() {
+      if (document.visibilityState !== "visible") return;
+      const today = dayIndex(new Date());
+      if (today !== lastDay) {
+        lastDay = today;
+        setActive(today);
+      }
+    }
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, []);
+
+  useEffect(() => () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+  }, []);
+
+  function openDrawer(ex: Exercise) {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setClosing(false);
+    setSelected(ex);
+  }
+
+  const closeDrawer = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+      setSelected(null);
+      setClosing(false);
+    }, CLOSE_MS);
+  }, [closing]);
+
+  useEffect(() => {
+    if (!selected || closing) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") closeDrawer();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected, closing, closeDrawer]);
 
   return (
     <div style={{
@@ -223,24 +86,44 @@ export default function Routine() {
       }}>
         <div style={{ fontSize: 11, letterSpacing: 4, color: "#666", marginBottom: 4 }}>WEEKLY PLAN</div>
         <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>
-          Calisthenics <span style={{ color: day.color }}>Routine</span>
+          Calisthenics <span style={{ color: day.color, transition: "color 150ms ease" }}>Routine</span>
         </div>
       </div>
 
       {/* Day tabs */}
-      <div style={{ display: "flex", padding: "12px 20px 0", gap: 6 }}>
-        {days.map((d, i) => (
-          <button key={i} onClick={() => setActive(i)} style={{
-            background: active === i ? d.color : "#1e1e1e",
-            color: active === i ? d.textColor : "#888",
-            border: "none", borderRadius: 6, padding: "8px 0",
-            fontSize: 11, fontWeight: 700, letterSpacing: 1,
-            cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
-            transition: "all 0.15s ease", flex: 1, minWidth: 0,
-          }}>
-            {d.label}
-          </button>
-        ))}
+      <div role="tablist" style={{ display: "flex", padding: "12px 20px 0", gap: 6 }}>
+        {days.map((d, i) => {
+          const isActive = active === i;
+          const names = d.exercises.map(ex => ex.name);
+          const complete = names.length > 0 && doneCount(i, names) === names.length;
+          return (
+            <button
+              key={d.label}
+              role="tab"
+              aria-selected={isActive}
+              className="tab"
+              onClick={() => setActive(i)}
+              style={{
+                position: "relative",
+                background: isActive ? d.color : "#1e1e1e",
+                color: isActive ? d.textColor : "#888",
+                border: "none", borderRadius: 6, padding: "9px 0",
+                fontSize: 11, fontWeight: 700, letterSpacing: 1,
+                cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+                flex: 1, minWidth: 0,
+              }}
+            >
+              {d.label}
+              {complete ? (
+                <span aria-hidden style={{
+                  position: "absolute", left: "50%", bottom: 3, marginLeft: -2,
+                  width: 4, height: 4, borderRadius: 2,
+                  background: isActive ? d.textColor : d.color,
+                }} />
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
       {/* Day content */}
@@ -248,51 +131,80 @@ export default function Routine() {
         <div style={{ fontSize: 13, letterSpacing: 3, color: day.color, marginBottom: 6, textTransform: "uppercase" }}>
           {day.label}
         </div>
-        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>{day.title}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 20 }}>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>{day.title}</div>
+          <DayTally done={doneCount(active, day.exercises.map(ex => ex.name))} total={day.exercises.length} color={day.color} />
+        </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {day.exercises.map((ex, i) => (
-            <button key={i} onClick={() => setSelected(ex)} style={{
-              background: "#1a1a1a", borderRadius: 10, padding: "14px 16px",
-              border: "none", borderLeft: `3px solid ${day.color}`,
-              cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-              color: "#f5f5f5", width: "100%", transition: "background 0.15s ease",
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = "#222"}
-              onMouseLeave={e => e.currentTarget.style.background = "#1a1a1a"}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{ex.name}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ fontSize: 12, color: day.color, fontWeight: 600, whiteSpace: "nowrap", marginTop: 1 }}>{ex.detail}</div>
-                  <div style={{ fontSize: 14, color: "#444" }}>›</div>
-                </div>
+          {day.exercises.map(ex => {
+            const done = isDone(active, ex.name);
+            return (
+              <div key={ex.name} className="card" style={{
+                display: "flex", alignItems: "stretch",
+                background: "#1a1a1a", borderRadius: 10,
+                borderLeft: `3px solid ${day.color}`,
+              }}>
+                <button
+                  onClick={() => openDrawer(ex)}
+                  style={{
+                    flex: 1, minWidth: 0, padding: "14px 8px 14px 16px",
+                    background: "transparent", border: "none",
+                    cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                    color: "#f5f5f5", opacity: done ? 0.55 : 1, transition: "opacity 150ms ease",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, textDecoration: done ? "line-through" : "none" }}>{ex.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ fontSize: 12, color: day.color, fontWeight: 600, whiteSpace: "nowrap", marginTop: 1 }}>{ex.detail}</div>
+                      <div style={{ fontSize: 14, color: "#444" }}>›</div>
+                    </div>
+                  </div>
+                  {ex.note ? <div style={{ fontSize: 12, color: "#666", marginTop: 5 }}>{ex.note}</div> : null}
+                </button>
+                <button
+                  className="check"
+                  aria-pressed={done}
+                  aria-label={done ? `Unmark ${ex.name}` : `Mark ${ex.name} done`}
+                  onClick={() => toggle(active, ex.name)}
+                  style={{
+                    width: 56, flexShrink: 0, background: "transparent", border: "none",
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "transform 120ms ease",
+                  }}
+                >
+                  <CheckCircle done={done} color={day.color} textColor={day.textColor} size={24} />
+                </button>
               </div>
-              {ex.note ? <div style={{ fontSize: 12, color: "#666", marginTop: 5 }}>{ex.note}</div> : null}
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* Exercise detail drawer */}
       {selected && (
         <div
-          onClick={() => setSelected(null)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "flex-end", zIndex: 100,
-            animation: "drawer-backdrop-in 220ms ease-out",
-          }}
+          className={closing ? "drawer-closing" : undefined}
+          style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "flex-end" }}
         >
           <div
-            onClick={e => e.stopPropagation()}
+            className="backdrop"
+            onClick={closeDrawer}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }}
+          />
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="drawer-title"
             style={{
+              position: "relative",
               background: "#1a1a1a", borderRadius: "16px 16px 0 0",
-              padding: "24px 20px calc(36px + env(safe-area-inset-bottom))",
+              padding: "24px 20px calc(24px + env(safe-area-inset-bottom))",
               width: "100%", maxHeight: "80dvh",
               overflowY: "auto", overscrollBehavior: "contain",
               boxSizing: "border-box",
-              animation: "drawer-slide-up 260ms cubic-bezier(0.32, 0.72, 0, 1)",
             }}
           >
             {/* Handle */}
@@ -300,10 +212,10 @@ export default function Routine() {
 
             {/* Exercise name + close */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, flex: 1, paddingRight: 12 }}>{selected.name}</div>
-              <button onClick={() => setSelected(null)} style={{
+              <div id="drawer-title" style={{ fontSize: 20, fontWeight: 700, flex: 1, paddingRight: 12 }}>{selected.name}</div>
+              <button onClick={closeDrawer} aria-label="Close" style={{
                 background: "#2a2a2a", border: "none", color: "#888",
-                width: 30, height: 30, borderRadius: "50%", cursor: "pointer",
+                width: 32, height: 32, borderRadius: "50%", cursor: "pointer",
                 fontSize: 16, fontFamily: "inherit", flexShrink: 0,
               }}>×</button>
             </div>
@@ -327,11 +239,11 @@ export default function Routine() {
                 </div>
 
                 {/* Tips */}
-                <div>
+                <div style={{ marginBottom: 24 }}>
                   <div style={{ fontSize: 10, letterSpacing: 3, color: "#555", marginBottom: 10 }}>TIPS</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {info.tips.map((tip, i) => (
-                      <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    {info.tips.map(tip => (
+                      <div key={tip} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                         <div style={{ color: day.color, fontSize: 14, marginTop: 1, flexShrink: 0 }}>—</div>
                         <div style={{ fontSize: 13, color: "#aaa", lineHeight: 1.6 }}>{tip}</div>
                       </div>
@@ -340,11 +252,51 @@ export default function Routine() {
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: 14, color: "#666" }}>No additional info for this one.</div>
+              <div style={{ fontSize: 14, color: "#666", marginBottom: 24 }}>No additional info for this one.</div>
             )}
+
+            <button
+              className="tab"
+              aria-pressed={selectedDone}
+              onClick={() => toggle(active, selected.name)}
+              style={{
+                width: "100%", padding: "14px 16px", borderRadius: 10, border: "none",
+                background: selectedDone ? "#2a2a2a" : day.color,
+                color: selectedDone ? day.color : day.textColor,
+                fontFamily: "inherit", fontSize: 12, fontWeight: 700, letterSpacing: 2,
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              }}
+            >
+              <CheckCircle done={selectedDone} color={day.color} textColor={day.textColor} size={18} />
+              {selectedDone ? "DONE · TAP TO UNDO" : "MARK DONE"}
+            </button>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function DayTally({ done, total, color }: { done: number; total: number; color: string }) {
+  const complete = total > 0 && done === total;
+  return (
+    <div style={{ fontSize: 11, letterSpacing: 2, color: complete ? color : done > 0 ? "#aaa" : "#555", whiteSpace: "nowrap" }}>
+      {complete ? "ALL DONE" : `${done} / ${total}`}
+    </div>
+  );
+}
+
+function CheckCircle({ done, color, textColor, size }: { done: boolean; color: string; textColor: string; size: number }) {
+  return (
+    <span aria-hidden style={{
+      width: size, height: size, borderRadius: "50%", boxSizing: "border-box",
+      border: done ? "none" : "1.5px solid #444",
+      background: done ? color : "transparent",
+      color: textColor, fontSize: size * 0.6, fontWeight: 700, lineHeight: 1,
+      display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      transition: "background-color 120ms ease, border-color 120ms ease",
+    }}>
+      {done ? "✓" : ""}
+    </span>
   );
 }
