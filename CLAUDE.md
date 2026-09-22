@@ -37,3 +37,11 @@ A personal weekly calisthenics planner. Originally a single-file React component
 
 - Railway, single service, Nixpacks auto-detects Next.js. `engines.node >= 20.19.0` in package.json pins the runtime. `npm start` runs `next start -H 0.0.0.0` and reads `$PORT`.
 - No env vars, no database, no external services. If that changes, document it here.
+
+## Workflow for this repo
+
+- **Verify before shipping:** `npm run typecheck && npm run lint && npm test && npm run build`. The build output must still list `/` as `○ (Static)`.
+- **Ship straight to `main`.** This is a personal repo with no PR flow — commit on `main` and `git push origin main`; Railway auto-deploys from there. The global `ship` skill's "never push to main" guardrail does not apply here. Conventional commit messages, no Claude attribution.
+- **Visual checks need a phone or the Chrome extension.** There's no headless browser set up. If the Claude-in-Chrome extension is connected, load the dev server at a 375px-wide viewport; otherwise smoke-test with `curl` and say plainly that the UI wasn't seen.
+- **Tooling pins:** vitest 5 fails `npm install` with an ERESOLVE against the `@types/node ^20` pin, so vitest is held at `^3`. Local Node may be older than the `engines` field (20.17 vs 20.19); the build still runs, so don't chase it.
+- **Ideas backlog** lives in the README's "Upcoming ideas" section — check it before inventing features.
