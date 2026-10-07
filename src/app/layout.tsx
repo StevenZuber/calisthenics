@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Mono } from "next/font/google";
 import "./globals.css";
+import { ServiceWorker } from "./service-worker";
 
 const dmMono = DM_Mono({
   variable: "--font-dm-mono",
@@ -34,7 +35,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={dmMono.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorker />
+      </body>
     </html>
   );
 }

@@ -49,22 +49,23 @@ button {
 }
 
 /* Drawer. Both layers only animate compositor properties (opacity /
-   transform) so the open/close stays smooth on the main thread. */
+   transform) so the open/close stays smooth on the main thread. The exit
+   keyframes deliberately omit `from`: they start from the current computed
+   value, so a sheet released mid-swipe slides out from where the finger left it
+   instead of jumping back to the top first. */
 @keyframes backdrop-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 @keyframes backdrop-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+  to { opacity: 0; }
 }
 @keyframes sheet-in {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
 @keyframes sheet-out {
-  from { transform: translateY(0); }
-  to   { transform: translateY(100%); }
+  to { transform: translateY(100%); }
 }
 
 .backdrop {
@@ -73,6 +74,13 @@ button {
 .sheet {
   will-change: transform;
   animation: sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+/* Set by useSwipeToDismiss once a drag starts. The entrance animation's
+   forwards fill would otherwise outrank the inline transform that follows the
+   finger. Stays on for the sheet's lifetime so a snap-back doesn't replay the
+   slide-in. Must sit above `.drawer-closing .sheet` so closing still wins. */
+.sheet.sheet-dragged {
+  animation: none;
 }
 .drawer-closing .backdrop {
   animation: backdrop-out 180ms ease-in both;

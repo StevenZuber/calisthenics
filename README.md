@@ -7,10 +7,11 @@ It started as a Claude artifact in the iPhone app and grew into a deployable Nex
 ## Features
 
 - **Seven-day plan** — Mon/Thu Push, Tue/Fri Pull, Wed Core + Mobility, Sat easy/optional, Sun rest. Each day has its own accent color that threads through the UI.
-- **Exercise detail drawer** — tap any exercise for muscles worked, step-by-step form, and tips. Slides up from the bottom on iPhone, and slides back down on close.
+- **Exercise detail drawer** — tap any exercise for muscles worked, step-by-step form, and tips. Slides up from the bottom on iPhone; swipe it down (or tap outside) to close.
 - **Progress for the week** — tick exercises off as you go (from the list or the drawer). Stored in `localStorage`, resets every Monday. Day tabs show a dot once a day is fully done.
 - **Opens on today** — the current day's tab is selected automatically.
 - **iPhone-friendly** — full-screen on mobile, safe-area aware (notch + home indicator), no tap-zoom delay, no rubber-band leakage, instant press feedback. "Add to Home Screen" gets you a near-native experience with a custom icon (web manifest included).
+- **Works offline** — a small service worker caches the app shell, so the home-screen app opens with no connection. New deploys are picked up on the next online open.
 - **Static page** — pre-renders at build time, deploys cheap.
 
 ## Tech Stack
@@ -50,11 +51,15 @@ src/
     layout.tsx          # Root layout, font, viewport + Apple PWA meta
     page.tsx            # Routine component (tabs, list, drawer, done toggles)
     manifest.ts         # Web app manifest
+    service-worker.tsx  # Registers /sw.js in production (unregisters in dev)
     globals.css         # Tailwind import, iOS resets, press states, drawer keyframes
   data/plan.ts          # Weekly plan + exercise details (edit here)
   hooks/useProgress.ts  # Weekly done-state in localStorage
+  hooks/useSwipeToDismiss.ts  # Swipe-down gesture for the drawer
   lib/week.ts           # dayIndex / weekKey helpers (+ tests)
+  lib/swipe.ts          # Dismiss-vs-snap-back threshold (+ tests)
 public/
+  sw.js                 # Service worker: offline app shell
   icon.svg              # Source icon (three accent bars on dark)
   apple-touch-icon.png  # 180×180 for iOS Add-to-Home-Screen
   icon-512.png          # 512×512 generic

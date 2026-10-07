@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { days, exerciseInfo, type Exercise } from "@/data/plan";
 import { useProgress } from "@/hooks/useProgress";
+import { useSwipeToDismiss } from "@/hooks/useSwipeToDismiss";
 import { dayIndex } from "@/lib/week";
 
 // Must match the `sheet-out` duration in globals.css: the drawer stays mounted
@@ -14,6 +15,8 @@ export default function Routine() {
   const [selected, setSelected] = useState<Exercise | null>(null);
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef<number | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const { doneCount, isDone, toggle } = useProgress();
   const day = days[active];
   const info = selected ? exerciseInfo[selected.name] : null;
@@ -59,6 +62,13 @@ export default function Routine() {
       setClosing(false);
     }, CLOSE_MS);
   }, [closing]);
+
+  useSwipeToDismiss({
+    sheetRef,
+    backdropRef,
+    enabled: selected !== null && !closing,
+    onDismiss: closeDrawer,
+  });
 
   useEffect(() => {
     if (!selected || closing) return;
@@ -189,11 +199,13 @@ export default function Routine() {
           style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "flex-end" }}
         >
           <div
+            ref={backdropRef}
             className="backdrop"
             onClick={closeDrawer}
             style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }}
           />
           <div
+            ref={sheetRef}
             className="sheet"
             role="dialog"
             aria-modal="true"
