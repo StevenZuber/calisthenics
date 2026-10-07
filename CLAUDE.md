@@ -5,8 +5,9 @@ A personal weekly calisthenics planner. Originally a single-file React component
 ## Quick map
 
 - [src/app/layout.tsx](src/app/layout.tsx) — root layout, font loading (DM Mono via `next/font`), viewport + Apple PWA meta, theme color.
-- [src/app/page.tsx](src/app/page.tsx) — the `Routine` component: day tabs + exercise list + bottom-drawer detail view + done toggles. Client component (`"use client"`).
-- [src/data/plan.ts](src/data/plan.ts) — weekly plan data (`days`, index 0 = Monday) and per-exercise detail data (`exerciseInfo`). Data only, no React.
+- [src/app/page.tsx](src/app/page.tsx) — the `Routine` component: header mode switch (ROUTINE / STRETCH) + day tabs + grouped card list + bottom-drawer detail view + done toggles. Client component (`"use client"`). Both modes render through the same `ExerciseCard` and drawer; `groupsFor(mode, day)` picks the data.
+- [src/data/plan.ts](src/data/plan.ts) — weekly plan data (`days`, index 0 = Monday), per-exercise detail data (`exerciseInfo`), and the `Mode` type (`"routine" | "stretch"`). Data only, no React.
+- [src/data/stretches.ts](src/data/stretches.ts) — Stretch tab data: `stretchInfo` (drawer detail) and `stretchesFor(dayIndex)`, which returns the two daily blocks (neck + shoulders, lower back + hips) followed by that day's complement block. `plan.test.ts` checks both plans for missing info and duplicate names.
 - [src/hooks/useSwipeToDismiss.ts](src/hooks/useSwipeToDismiss.ts) — swipe-down-to-close for the drawer. Touch listeners attached via refs (non-passive, so a drag can block native scroll); writes transforms straight to the DOM. Adds `.sheet-dragged` to the sheet once a drag starts.
 - [src/lib/swipe.ts](src/lib/swipe.ts) — `shouldDismiss`: pure close-vs-snap-back decision from offset, sheet height, and release velocity. Unit-tested in `swipe.test.ts`.
 - [src/app/service-worker.tsx](src/app/service-worker.tsx) + [public/sw.js](public/sw.js) — offline support. The component registers the worker in production and unregisters any leftover one in dev; the worker precaches the shell, serves navigations network-first, `/_next/static` cache-first, the rest stale-while-revalidate. Bump `CACHE` in `sw.js` if the precache list changes.
@@ -24,12 +25,16 @@ A personal weekly calisthenics planner. Originally a single-file React component
 - **Touch feel.** No `onMouseEnter`/`onMouseLeave` hover hacks — iOS emulates hover and it sticks until the next tap. Hover goes behind `@media (hover: hover)`; press feedback is `:active` with `transition-duration: 0s` so it's instant. Only animate `opacity`/`transform` on the drawer (compositor-only); the sheet stays mounted for `CLOSE_MS` after close so the exit animation plays — keep that constant in sync with `sheet-out` in the CSS. The exit keyframes have no `from` on purpose: they start from the current value so a swipe-dismiss continues from where the finger let go.
 - **Day color is the accent.** `day.color` (yellow-green / teal / orange / gray) threads through borders, labels, and emphasis text. Keep that pattern — it's the whole visual identity.
 - **Offline is a plain service worker, not a library.** `public/sw.js` is hand-written and registered only in production. Testing it means `npm run build && npm start`, not `next dev` (dev actively unregisters workers so stale chunks never shadow HMR).
-- **Progress is the only persisted state.** `useProgress` stores done exercises for the current week under a single localStorage key and drops them when the week rolls over. Active day and selected exercise are plain `useState`; the active day snaps to today on mount and on `visibilitychange`.
+- **Progress is the only persisted state.** `useProgress` stores done exercises for the current week under a single localStorage key and drops them when the week rolls over. Keys are scoped by mode: routine keys are `${day}:${name}` (unchanged from before the Stretch tab, so nothing migrates) and stretch keys are `s:${day}:${name}`. Active day, mode, and selected exercise are plain `useState`; the active day snaps to today on mount and on `visibilitychange`, mode always starts on Routine.
 - **Static page.** `/` pre-renders as static at build time — keep it that way unless there's a real reason. Railway serves it cheaply.
 
 ## Adding exercises or days
 
 `days` and `exerciseInfo` in [src/data/plan.ts](src/data/plan.ts) are the only sources of truth. To add an exercise, add an entry to `exerciseInfo` keyed by display name, then reference that name in one or more `days[].exercises[].name`. The lookup is `exerciseInfo[selected.name]` — if the key is missing, the drawer shows "No additional info for this one." Exercise names must be unique within a day (they're React keys and the progress key).
+
+Stretches work the same way in [src/data/stretches.ts](src/data/stretches.ts): add to `stretchInfo`, then reference the name in one of the group constants (`neckShoulders`, `lowerBackHips`, or a per-day complement). Run `npm test` after either edit; `plan.test.ts` fails on a missing info entry or a duplicate name.
+
+An `Exercise` can set `jumpTo: "stretch"` to make its card switch tabs instead of opening the drawer. The Wednesday and Saturday "Stretching" rows use this so stretching lives in one place.
 
 ## Mobile gotchas to remember
 

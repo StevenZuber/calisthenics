@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Mode } from "@/data/plan";
 import { weekKey } from "@/lib/week";
 
 const STORAGE_KEY = "calisthenics.progress.v1";
@@ -8,8 +9,11 @@ type Stored = {
   done: string[];
 };
 
-function progressKey(dayIndex: number, exerciseName: string): string {
-  return `${dayIndex}:${exerciseName}`;
+// Routine keys keep the original unprefixed shape so progress stored before
+// the Stretch tab existed still counts for the rest of that week.
+function progressKey(mode: Mode, dayIndex: number, exerciseName: string): string {
+  const base = `${dayIndex}:${exerciseName}`;
+  return mode === "routine" ? base : `s:${base}`;
 }
 
 function load(currentWeek: string): Set<string> {
@@ -39,8 +43,8 @@ function save(currentWeek: string, done: Set<string>) {
  * localStorage and reset automatically when a new week starts. Starts empty on
  * the server and during hydration, then loads from storage on mount.
  *
- * @returns `isDone(dayIndex, name)` / `toggle(dayIndex, name)` plus
- *          `doneCount(dayIndex, names)` for day-level summaries
+ * @returns `isDone(mode, dayIndex, name)` / `toggle(mode, dayIndex, name)`
+ *          plus `doneCount(mode, dayIndex, names)` for day-level summaries
  */
 export function useProgress() {
   const [done, setDone] = useState<Set<string>>(() => new Set());
@@ -67,13 +71,13 @@ export function useProgress() {
   }, [done, week]);
 
   const isDone = useCallback(
-    (dayIndex: number, name: string) => done.has(progressKey(dayIndex, name)),
+    (mode: Mode, dayIndex: number, name: string) => done.has(progressKey(mode, dayIndex, name)),
     [done],
   );
 
   const toggle = useCallback(
-    (dayIndex: number, name: string) => {
-      const key = progressKey(dayIndex, name);
+    (mode: Mode, dayIndex: number, name: string) => {
+      const key = progressKey(mode, dayIndex, name);
       setDone(prev => {
         const next = new Set(prev);
         if (next.has(key)) next.delete(key);
@@ -85,8 +89,8 @@ export function useProgress() {
   );
 
   const doneCount = useCallback(
-    (dayIndex: number, names: string[]) =>
-      names.reduce((n, name) => n + (done.has(progressKey(dayIndex, name)) ? 1 : 0), 0),
+    (mode: Mode, dayIndex: number, names: string[]) =>
+      names.reduce((n, name) => n + (done.has(progressKey(mode, dayIndex, name)) ? 1 : 0), 0),
     [done],
   );
 

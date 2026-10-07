@@ -7,8 +7,9 @@ It started as a Claude artifact in the iPhone app and grew into a deployable Nex
 ## Features
 
 - **Seven-day plan** — Mon/Thu Push, Tue/Fri Pull, Wed Core + Mobility, Sat easy/optional, Sun rest. Each day has its own accent color that threads through the UI.
+- **Stretch tab** — a ROUTINE / STRETCH switch in the header. Every day gets a neck + shoulders block and a lower back + hips block, plus a short block that complements that day's workout (wrists and triceps after push, lats and forearms after pull, extension work after core). Same cards, same drawer, its own checklist.
 - **Exercise detail drawer** — tap any exercise for muscles worked, step-by-step form, and tips. Slides up from the bottom on iPhone; swipe it down (or tap outside) to close.
-- **Progress for the week** — tick exercises off as you go (from the list or the drawer). Stored in `localStorage`, resets every Monday. Day tabs show a dot once a day is fully done.
+- **Progress for the week** — tick exercises and stretches off as you go (from the list or the drawer). Stored in `localStorage`, resets every Monday. Day tabs show a dot once the day's list in the current tab is fully done.
 - **Opens on today** — the current day's tab is selected automatically.
 - **iPhone-friendly** — full-screen on mobile, safe-area aware (notch + home indicator), no tap-zoom delay, no rubber-band leakage, instant press feedback. "Add to Home Screen" gets you a near-native experience with a custom icon (web manifest included).
 - **Works offline** — a small service worker caches the app shell, so the home-screen app opens with no connection. New deploys are picked up on the next online open.
@@ -54,6 +55,7 @@ src/
     service-worker.tsx  # Registers /sw.js in production (unregisters in dev)
     globals.css         # Tailwind import, iOS resets, press states, drawer keyframes
   data/plan.ts          # Weekly plan + exercise details (edit here)
+  data/stretches.ts     # Stretch tab: daily blocks + per-day complements
   hooks/useProgress.ts  # Weekly done-state in localStorage
   hooks/useSwipeToDismiss.ts  # Swipe-down gesture for the drawer
   lib/week.ts           # dayIndex / weekKey helpers (+ tests)
@@ -66,7 +68,7 @@ public/
 railway.json            # Build + start commands for Railway
 ```
 
-The plan data (`days`) and exercise details (`exerciseInfo`) live in [src/data/plan.ts](src/data/plan.ts) — easy to tweak by hand.
+The plan data (`days`) and exercise details (`exerciseInfo`) live in [src/data/plan.ts](src/data/plan.ts); the stretch groups and their details live in [src/data/stretches.ts](src/data/stretches.ts). Both are plain data, easy to tweak by hand, and `plan.test.ts` checks every name has drawer info.
 
 ## Upcoming ideas
 

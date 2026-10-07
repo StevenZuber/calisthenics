@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { days, exerciseInfo, type Exercise } from "@/data/plan";
+import { days, exerciseInfo, type Exercise, type Mode } from "@/data/plan";
+import { stretchesFor, stretchInfo, type StretchGroup } from "@/data/stretches";
 import { useProgress } from "@/hooks/useProgress";
 import { useSwipeToDismiss } from "@/hooks/useSwipeToDismiss";
 import { dayIndex } from "@/lib/week";
@@ -10,8 +11,20 @@ import { dayIndex } from "@/lib/week";
 // this long after close is requested so the exit animation can play.
 const CLOSE_MS = 200;
 
+/** Card groups to render for a day in a given mode. Routine is one untitled group. */
+function groupsFor(mode: Mode, day: number): StretchGroup[] {
+  return mode === "routine"
+    ? [{ title: "", items: days[day].exercises }]
+    : stretchesFor(day);
+}
+
+function namesFor(mode: Mode, day: number): string[] {
+  return groupsFor(mode, day).flatMap(g => g.items.map(item => item.name));
+}
+
 export default function Routine() {
   const [active, setActive] = useState(0);
+  const [mode, setMode] = useState<Mode>("routine");
   const [selected, setSelected] = useState<Exercise | null>(null);
   const [closing, setClosing] = useState(false);
   const closeTimer = useRef<number | null>(null);
@@ -19,8 +32,10 @@ export default function Routine() {
   const backdropRef = useRef<HTMLDivElement>(null);
   const { doneCount, isDone, toggle } = useProgress();
   const day = days[active];
-  const info = selected ? exerciseInfo[selected.name] : null;
-  const selectedDone = selected ? isDone(active, selected.name) : false;
+  const groups = groupsFor(mode, active);
+  const names = namesFor(mode, active);
+  const info = selected ? (mode === "stretch" ? stretchInfo : exerciseInfo)[selected.name] : null;
+  const selectedDone = selected ? isDone(mode, active, selected.name) : false;
 
   // The page is static, so the server always renders Monday. Jump to today's
   // tab on the client, and again when the app returns to the foreground on a
@@ -45,6 +60,10 @@ export default function Routine() {
   }, []);
 
   function openDrawer(ex: Exercise) {
+    if (ex.jumpTo) {
+      setMode(ex.jumpTo);
+      return;
+    }
     if (closeTimer.current !== null) {
       window.clearTimeout(closeTimer.current);
       closeTimer.current = null;
@@ -94,9 +113,14 @@ export default function Routine() {
         padding: "calc(28px + env(safe-area-inset-top)) 20px 12px",
         borderBottom: "1px solid #2a2a2a",
       }}>
-        <div style={{ fontSize: 11, letterSpacing: 4, color: "#666", marginBottom: 4 }}>WEEKLY PLAN</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ fontSize: 11, letterSpacing: 4, color: "#666" }}>WEEKLY PLAN</div>
+          <ModeSwitch mode={mode} onChange={setMode} color={day.color} textColor={day.textColor} />
+        </div>
         <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>
-          Calisthenics <span style={{ color: day.color, transition: "color 150ms ease" }}>Routine</span>
+          Calisthenics <span style={{ color: day.color, transition: "color 150ms ease" }}>
+            {mode === "routine" ? "Routine" : "Stretch"}
+          </span>
         </div>
       </div>
 
@@ -104,8 +128,8 @@ export default function Routine() {
       <div role="tablist" style={{ display: "flex", padding: "12px 20px 0", gap: 6 }}>
         {days.map((d, i) => {
           const isActive = active === i;
-          const names = d.exercises.map(ex => ex.name);
-          const complete = names.length > 0 && doneCount(i, names) === names.length;
+          const dayNames = namesFor(mode, i);
+          const complete = dayNames.length > 0 && doneCount(mode, i, dayNames) === dayNames.length;
           return (
             <button
               key={d.label}
@@ -142,53 +166,35 @@ export default function Routine() {
           {day.label}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 20 }}>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>{day.title}</div>
-          <DayTally done={doneCount(active, day.exercises.map(ex => ex.name))} total={day.exercises.length} color={day.color} />
+          <div style={{ fontSize: 22, fontWeight: 700 }}>
+            {mode === "routine" ? day.title : "Daily Stretch"}
+          </div>
+          <DayTally done={doneCount(mode, active, names)} total={names.length} color={day.color} />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {day.exercises.map(ex => {
-            const done = isDone(active, ex.name);
-            return (
-              <div key={ex.name} className="card" style={{
-                display: "flex", alignItems: "stretch",
-                background: "#1a1a1a", borderRadius: 10,
-                borderLeft: `3px solid ${day.color}`,
-              }}>
-                <button
-                  onClick={() => openDrawer(ex)}
-                  style={{
-                    flex: 1, minWidth: 0, padding: "14px 8px 14px 16px",
-                    background: "transparent", border: "none",
-                    cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                    color: "#f5f5f5", opacity: done ? 0.55 : 1, transition: "opacity 150ms ease",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, textDecoration: done ? "line-through" : "none" }}>{ex.name}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ fontSize: 12, color: day.color, fontWeight: 600, whiteSpace: "nowrap", marginTop: 1 }}>{ex.detail}</div>
-                      <div style={{ fontSize: 14, color: "#444" }}>›</div>
-                    </div>
-                  </div>
-                  {ex.note ? <div style={{ fontSize: 12, color: "#666", marginTop: 5 }}>{ex.note}</div> : null}
-                </button>
-                <button
-                  className="check"
-                  aria-pressed={done}
-                  aria-label={done ? `Unmark ${ex.name}` : `Mark ${ex.name} done`}
-                  onClick={() => toggle(active, ex.name)}
-                  style={{
-                    width: 56, flexShrink: 0, background: "transparent", border: "none",
-                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "transform 120ms ease",
-                  }}
-                >
-                  <CheckCircle done={done} color={day.color} textColor={day.textColor} size={24} />
-                </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {groups.map((group, gi) => (
+            <div key={group.title || gi}>
+              {group.title ? (
+                <div style={{ fontSize: 10, letterSpacing: 3, color: "#555", marginBottom: 10, textTransform: "uppercase" }}>
+                  {group.title}
+                </div>
+              ) : null}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {group.items.map(ex => (
+                  <ExerciseCard
+                    key={ex.name}
+                    exercise={ex}
+                    done={isDone(mode, active, ex.name)}
+                    color={day.color}
+                    textColor={day.textColor}
+                    onOpen={() => openDrawer(ex)}
+                    onToggle={() => toggle(mode, active, ex.name)}
+                  />
+                ))}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -240,7 +246,9 @@ export default function Routine() {
               <>
                 {/* Muscles */}
                 <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 10, letterSpacing: 3, color: "#555", marginBottom: 8 }}>MUSCLES WORKED</div>
+                  <div style={{ fontSize: 10, letterSpacing: 3, color: "#555", marginBottom: 8 }}>
+                    {mode === "stretch" ? "TARGETS" : "MUSCLES WORKED"}
+                  </div>
                   <div style={{ fontSize: 14, color: "#aaa", lineHeight: 1.5 }}>{info.muscles}</div>
                 </div>
 
@@ -270,7 +278,7 @@ export default function Routine() {
             <button
               className="tab"
               aria-pressed={selectedDone}
-              onClick={() => toggle(active, selected.name)}
+              onClick={() => toggle(mode, active, selected.name)}
               style={{
                 width: "100%", padding: "14px 16px", borderRadius: 10, border: "none",
                 background: selectedDone ? "#2a2a2a" : day.color,
@@ -285,6 +293,84 @@ export default function Routine() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ModeSwitch({ mode, onChange, color, textColor }: {
+  mode: Mode; onChange: (mode: Mode) => void; color: string; textColor: string;
+}) {
+  const options: { value: Mode; label: string }[] = [
+    { value: "routine", label: "ROUTINE" },
+    { value: "stretch", label: "STRETCH" },
+  ];
+  return (
+    <div role="group" aria-label="View" style={{ display: "flex", gap: 4 }}>
+      {options.map(opt => {
+        const isActive = mode === opt.value;
+        return (
+          <button
+            key={opt.value}
+            className="tab"
+            aria-pressed={isActive}
+            onClick={() => onChange(opt.value)}
+            style={{
+              background: isActive ? color : "#1e1e1e",
+              color: isActive ? textColor : "#888",
+              border: "none", borderRadius: 6, padding: "8px 10px",
+              fontSize: 10, fontWeight: 700, letterSpacing: 2,
+              cursor: "pointer", fontFamily: "inherit", minHeight: 30,
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ExerciseCard({ exercise: ex, done, color, textColor, onOpen, onToggle }: {
+  exercise: Exercise; done: boolean; color: string; textColor: string;
+  onOpen: () => void; onToggle: () => void;
+}) {
+  return (
+    <div className="card" style={{
+      display: "flex", alignItems: "stretch",
+      background: "#1a1a1a", borderRadius: 10,
+      borderLeft: `3px solid ${color}`,
+    }}>
+      <button
+        onClick={onOpen}
+        style={{
+          flex: 1, minWidth: 0, padding: "14px 8px 14px 16px",
+          background: "transparent", border: "none",
+          cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+          color: "#f5f5f5", opacity: done ? 0.55 : 1, transition: "opacity 150ms ease",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, textDecoration: done ? "line-through" : "none" }}>{ex.name}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 12, color, fontWeight: 600, whiteSpace: "nowrap", marginTop: 1 }}>{ex.detail}</div>
+            {ex.jumpTo ? null : <div style={{ fontSize: 14, color: "#444" }}>›</div>}
+          </div>
+        </div>
+        {ex.note ? <div style={{ fontSize: 12, color: "#666", marginTop: 5 }}>{ex.note}</div> : null}
+      </button>
+      <button
+        className="check"
+        aria-pressed={done}
+        aria-label={done ? `Unmark ${ex.name}` : `Mark ${ex.name} done`}
+        onClick={onToggle}
+        style={{
+          width: 56, flexShrink: 0, background: "transparent", border: "none",
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "transform 120ms ease",
+        }}
+      >
+        <CheckCircle done={done} color={color} textColor={textColor} size={24} />
+      </button>
     </div>
   );
 }

@@ -4,6 +4,9 @@
  * the exact `Exercise.name` used in `days`.
  */
 
+/** Which list the UI is showing. Scopes progress keys so the two never collide. */
+export type Mode = "routine" | "stretch";
+
 export type ExerciseInfo = {
   muscles: string;
   how: string;
@@ -14,6 +17,8 @@ export type Exercise = {
   name: string;
   detail: string;
   note: string;
+  /** Tapping the card switches to this mode instead of opening the drawer. */
+  jumpTo?: Mode;
 };
 
 export type Day = {
@@ -167,7 +172,7 @@ export const days: Day[] = [
       { name: "Hollow Body Hold", detail: "3 × 20–30 sec", note: "" },
       { name: "Dead Bug", detail: "3 × 10 each side", note: "" },
       { name: "Plank", detail: "3 × 45 sec", note: "" },
-      { name: "Stretching", detail: "Hip flexors + thoracic spine", note: "Take your time" },
+      { name: "Stretching", detail: "Stretch tab ›", note: "Tap to open today's stretches", jumpTo: "stretch" },
     ],
   },
   {
@@ -191,7 +196,7 @@ export const days: Day[] = [
     label: "SAT", title: "Rest / Easy", color: "#c4c4c4", textColor: "#111",
     exercises: [
       { name: "Stairmaster or walk", detail: "Optional", note: "Keep it easy" },
-      { name: "Stretching", detail: "Optional", note: "Recovery focus" },
+      { name: "Stretching", detail: "Stretch tab ›", note: "Recovery focus", jumpTo: "stretch" },
     ],
   },
   {
